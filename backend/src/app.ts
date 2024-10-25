@@ -1,9 +1,10 @@
 import 'dotenv/config';
-import express from 'express';
+import express  from 'express';
 import mongoose from 'mongoose';
 import productsRouter from './routes/product';
 import ordersRouter from './routes/order';
 import path from 'path';
+import errorHandler from './middlewares/error-handler';
 const cors = require('cors');
 
 const { PORT = 3000, DB_ADDRESS } = process.env;
@@ -16,5 +17,7 @@ mongoose.connect(`${DB_ADDRESS}`);
 
 app.use('/product', productsRouter);
 app.use('/order', ordersRouter);
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {console.log(`Сервер запущен на ${PORT} порту`)});

@@ -1,5 +1,6 @@
 import { celebrate, Joi, errors, Segments } from 'celebrate';
 import { IProduct } from '../models/product';
+import { orderSchema } from '../models/order';
 
 export const validateProduct = celebrate({
   [Segments.BODY]: Joi.object<IProduct>({
@@ -11,4 +12,8 @@ export const validateProduct = celebrate({
       'any.required': 'Заголовок обязателен',
     }),
   }),
+});
+
+export const validateOrder = celebrate({
+  [Segments.BODY]: orderSchema
 });

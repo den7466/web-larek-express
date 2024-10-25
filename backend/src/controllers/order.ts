@@ -1,13 +1,15 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import Product from '../models/product';
 import { faker } from '@faker-js/faker';
+import InternalServerError from '../errors/internal-server-error';
+import BadRequestError from '../errors/bad-request-error';
 
-export const createOrder = async (req: Request, res: Response) => {
+export const createOrder = async (req: Request, res: Response, next: NextFunction) => {
   const { payment, email, phone, address, total, items } = req.body;
   try{
 
     if(items.length === 0 || !Array.isArray(items)){
-      throw new Error('Ошибка валидации данных при создании товара');
+      return next(new BadRequestError('Ошибка валидации данных при создании заказа'));
     }
 
     const checkResult = await Product.find({
@@ -16,7 +18,7 @@ export const createOrder = async (req: Request, res: Response) => {
     });
 
     if(checkResult.length !== items.length){
-      throw new Error('Ошибка валидации данных при создании товара');
+      return next(new BadRequestError('Ошибка валидации данных при создании заказа'));
     }
 
     let totalResult = 0;
@@ -25,15 +27,17 @@ export const createOrder = async (req: Request, res: Response) => {
     }
 
     if(totalResult !== total){
-      throw new Error('Ошибка валидации данных при создании товара');
+      return next(new BadRequestError('Ошибка валидации данных при создании заказа'));
     }
 
+    const orderId = faker.string.uuid();
+
     res.status(201).send({
-      id: faker.helpers.multiple(() => faker.string.uuid(), {count: 1})[0],
+      id: orderId,
       total: totalResult
     });
 
   }catch(error){
-    res.status(500).send(`Ошибка запроса`);
+    return next(new InternalServerError('Внутренняя ошибка сервера'));
   }
 }
