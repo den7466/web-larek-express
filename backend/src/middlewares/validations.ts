@@ -1,19 +1,11 @@
-import { celebrate, Joi, errors, Segments } from 'celebrate';
-import { IProduct } from '../models/product';
-import { orderSchema } from '../models/order';
+import { celebrate, Segments } from 'celebrate';
+import { productValidateSchema } from '../models/product';
+import { orderValidateSchema } from '../models/order';
 
 export const validateProduct = celebrate({
-  [Segments.BODY]: Joi.object<IProduct>({
-    title: Joi.string().min(2).max(30).required().messages({
-      'string.base': 'Заголовок должен быть текстом',
-      'string.empty': 'Заголовок не может быть пустым',
-      'string.min': 'Заголовок должен быть длиной не менее {#limit} си символов',
-      'string.max': 'Заголовок не может превышать {#limit} символов',
-      'any.required': 'Заголовок обязателен',
-    }),
-  }),
+  [Segments.BODY]: productValidateSchema
 });
 
 export const validateOrder = celebrate({
-  [Segments.BODY]: orderSchema
+  [Segments.BODY]: orderValidateSchema
 });

@@ -14,7 +14,7 @@ export interface IOrder {
   items: string[];
 }
 
-export const orderSchema = Joi.object<IOrder>({
+export const orderValidateSchema = Joi.object<IOrder>({
   payment: Joi.string().required(),
   email: Joi.string().email().required(),
   phone: Joi.string().required(),

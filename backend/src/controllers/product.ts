@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import Product from '../models/product';
 import InternalServerError from '../errors/internal-server-error';
+import BadRequestError from '../errors/bad-request-error';
+import ConflictError from '../errors/conflict-error';
 
 export const getProducts = (req: Request, res: Response, next: NextFunction) => {
   try{
@@ -14,19 +16,36 @@ export const getProducts = (req: Request, res: Response, next: NextFunction) => 
   }
 }
 
-export const createProduct = (req: Request, res: Response, next: NextFunction) => {
+export const getProductById = (req: Request, res: Response, next: NextFunction) => {
+  res.status(200).send('OK');
+}
+
+export const createProduct = async (req: Request, res: Response, next: NextFunction) => {
   try{
+    const { title, image, category, description, price } = req.body;
+
+    const createResult = await Product.create({ title, image, category, description, price });
+
     res.status(201).send({
-      "description": "Будет стоять над душой и не давать прокрастинировать.",
-      "image": {
-          fileName: "/images/Asterisk_2.png",
-          originalName: "Asterisk_2.png"
-      },
-      "title": "Мамка-таймер",
-      "category": "софт-скил",
-      "price": null
+      description: createResult.description,
+      image: createResult.image,
+      title: createResult.title,
+      category: createResult.category,
+      price: createResult.price,
+      id: createResult._id
     });
   }catch(error){
+    if (error instanceof Error && error.message.includes('E11000')) {
+      return next(new ConflictError('Ошибка при создании товара с уже существующим полем title'));
+    }
     return next(new InternalServerError('Внутренняя ошибка сервера'));
   }
+}
+
+export const patchProduct = (req: Request, res: Response, next: NextFunction) => {
+  res.status(200).send('Обновлено');
+}
+
+export const deleteProduct = (req: Request, res: Response, next: NextFunction) => {
+  res.status(200).send('Удалено');
 }

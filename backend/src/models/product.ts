@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import Joi from "joi";
 
 interface Iimage {
   fileName: string;
@@ -47,6 +48,24 @@ const productSchema = new mongoose.Schema<IProduct>({
     type: Number,
     default: null
   }
+});
+
+export const productValidateSchema = Joi.object<IProduct>({
+  title: Joi.string().min(2).max(30).required(),
+  image: Joi.object({
+    fileName: Joi.string(),
+    originalName: Joi.string(),
+  }).required(),
+  category: Joi.string().required(),
+  description: Joi.string(),
+  price: Joi.number(),
+  // .messages({
+  //   'string.base': 'Заголовок должен быть текстом',
+  //   'string.empty': 'Заголовок не может быть пустым',
+  //   'string.min': 'Заголовок должен быть длиной не менее {#limit} си символов',
+  //   'string.max': 'Заголовок не может превышать {#limit} символов',
+  //   'any.required': 'Заголовок обязателен',
+  // }),
 });
 
 export default mongoose.model<IProduct>('product', productSchema);
