@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import Product from '../models/product';
 import InternalServerError from '../errors/internal-server-error';
-import BadRequestError from '../errors/bad-request-error';
 import ConflictError from '../errors/conflict-error';
 
 export const getProducts = (req: Request, res: Response, next: NextFunction) => {
