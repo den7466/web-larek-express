@@ -8,7 +8,8 @@ import uploadRouter from './routes/upload';
 import path from 'path';
 import errorHandler from './middlewares/error-handler';
 import { errorLogger, requestLogger } from './middlewares/logger';
-
+import clearTempFiles from './controllers/clear-temp-files';
+const cron = require('node-cron');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
@@ -32,4 +33,7 @@ app.use('/order', ordersRouter);
 app.use('/auth', authRouter);
 app.use(errorLogger);
 app.use(errorHandler);
+
 app.listen(PORT, () => {console.log(`Сервер запущен на ${PORT} порту`)});
+
+// cron.schedule('55 * * * *', clearTempFiles);

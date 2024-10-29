@@ -24,7 +24,7 @@ export const postUploadFole = async (req: Request, res: Response, next: NextFunc
                       '-'+date.getMinutes()+
                       '-'+date.getSeconds()+'.'+originalFileName[1];
 
-    await fs.rename(file.path, path.join(__dirname, '../public/images', fileName));
+    await fs.copyFile(file.path, path.join(__dirname, '../public/images', fileName));
 
     res.status(200).send({
       "fileName": `/images/${fileName}`,
