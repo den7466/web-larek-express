@@ -34,10 +34,12 @@ const userSchema = new mongoose.Schema<IUser>({
   password: {
     type: String,
     minlength: 6,
-    required: true
+    required: true,
+    select: false
   },
   tokens: {
-    type: [tokenSchema]
+    type: [tokenSchema],
+    select: false
   }
 });
 

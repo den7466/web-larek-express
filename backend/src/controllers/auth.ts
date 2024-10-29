@@ -7,15 +7,16 @@ import User from '../models/user';
 import UnauthorizedError from '../errors/unauthorized-error';
 import ConflictError from '../errors/conflict-error';
 const bcrypt = require('bcryptjs');
-const cookieParser = require('cookie-parser');
 
 const { AUTH_REFRESH_TOKEN_EXPIRY, AUTH_SECRET } = process.env;
+
+// TODO: Проверить правильность работы токенов, в базе они не просто так
 
 export const postLoginUser = async (req: Request, res: Response, next: NextFunction) => {
   const { email, password } = req.body;
 
   try{
-    const user = await User.findOne({email: email});
+    const user = await User.findOne({email: email}).select('+password');
 
     if(!user){
       return next(new UnauthorizedError('Неправильная почта или пароль'));
