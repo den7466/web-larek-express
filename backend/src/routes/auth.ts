@@ -1,8 +1,13 @@
-import { validateRegister } from '../middlewares/validations';
-import { getLogout, refreshAccessToken, getCurrentUser, postLoginUser, postRegisterUser } from '../controllers/auth';
 import { Router } from 'express';
+import { validateRegister } from '../middlewares/validations';
+import {
+  getLogout,
+  refreshAccessToken,
+  getCurrentUser,
+  postLoginUser,
+  postRegisterUser,
+} from '../controllers/auth';
 import auth from '../middlewares/auth';
-
 
 const router = Router();
 
@@ -13,4 +18,3 @@ router.get('/logout', getLogout);
 router.get('/user', auth, getCurrentUser);
 
 export default router;
-

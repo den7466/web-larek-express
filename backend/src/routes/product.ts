@@ -1,6 +1,14 @@
 import { Router } from 'express';
-import { getProducts, createProduct, patchProduct, deleteProduct } from '../controllers/product';
-import { validateCreateProduct, validateUpdateProduct } from '../middlewares/validations';
+import {
+  createProduct,
+  patchProduct,
+  deleteProduct,
+  getProducts,
+} from '../controllers/product';
+import {
+  validateCreateProduct,
+  validateUpdateProduct,
+} from '../middlewares/validations';
 import auth from '../middlewares/auth';
 
 const router = Router();

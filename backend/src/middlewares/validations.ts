@@ -4,17 +4,17 @@ import { orderValidateSchema } from '../models/order';
 import { userRegisterValidateSchema } from '../models/user';
 
 export const validateCreateProduct = celebrate({
-  [Segments.BODY]: createProductValidateSchema
+  [Segments.BODY]: createProductValidateSchema,
 });
 
 export const validateUpdateProduct = celebrate({
-  [Segments.BODY]: updateProductValidateSchema
+  [Segments.BODY]: updateProductValidateSchema,
 });
 
 export const validateOrder = celebrate({
-  [Segments.BODY]: orderValidateSchema
+  [Segments.BODY]: orderValidateSchema,
 });
 
 export const validateRegister = celebrate({
-  [Segments.BODY]: userRegisterValidateSchema
+  [Segments.BODY]: userRegisterValidateSchema,
 });
