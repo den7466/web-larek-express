@@ -5,7 +5,7 @@ import InternalServerError from '../errors/internal-server-error';
 import BadRequestError from '../errors/bad-request-error';
 
 export const createOrder = async (req: Request, res: Response, next: NextFunction) => {
-  const { payment, email, phone, address, total, items } = req.body;
+  const { total, items } = req.body;
   try{
 
     if(items.length === 0 || !Array.isArray(items)){

@@ -1,10 +1,14 @@
 import { celebrate, Segments } from 'celebrate';
-import { productValidateSchema } from '../models/product';
+import { createProductValidateSchema, updateProductValidateSchema } from '../models/product';
 import { orderValidateSchema } from '../models/order';
 import { userRegisterValidateSchema } from '../models/user';
 
-export const validateProduct = celebrate({
-  [Segments.BODY]: productValidateSchema
+export const validateCreateProduct = celebrate({
+  [Segments.BODY]: createProductValidateSchema
+});
+
+export const validateUpdateProduct = celebrate({
+  [Segments.BODY]: updateProductValidateSchema
 });
 
 export const validateOrder = celebrate({

@@ -1,7 +1,9 @@
 import mongoose from 'mongoose';
 import Joi from "joi";
+import path from 'path';
+import fs, { constants } from 'fs/promises';
 
-interface Iimage {
+export interface IImage {
   fileName: string;
   originalName: string;
 }
@@ -14,7 +16,11 @@ export interface IProduct {
   price: number;
 }
 
-const imagesSchema = new mongoose.Schema<Iimage>({
+interface ProductModel extends mongoose.Model<IProduct> {
+  deleteRelatedFiles: (image: any) => void;
+}
+
+const imagesSchema = new mongoose.Schema<IImage>({
   fileName: {
     type: String,
     required: true
@@ -50,7 +56,7 @@ const productSchema = new mongoose.Schema<IProduct>({
   }
 });
 
-export const productValidateSchema = Joi.object<IProduct>({
+export const createProductValidateSchema = Joi.object<IProduct>({
   title: Joi.string().min(2).max(30).required(),
   image: Joi.object({
     fileName: Joi.string(),
@@ -66,6 +72,27 @@ export const productValidateSchema = Joi.object<IProduct>({
   //   'string.max': 'Заголовок не может превышать {#limit} символов',
   //   'any.required': 'Заголовок обязателен',
   // }),
+  // TODO: Тут с сообщениями разобраться
 });
 
-export default mongoose.model<IProduct>('product', productSchema);
+export const updateProductValidateSchema = Joi.object<IProduct>({
+  title: Joi.string().min(2).max(30),
+  image: Joi.object({
+    fileName: Joi.string(),
+    originalName: Joi.string(),
+  }),
+  category: Joi.string(),
+  description: Joi.string(),
+  price: Joi.number()
+});
+
+productSchema.static('deleteRelatedFiles', function deleteRelatedFiles(image: any) {
+  if(image.fileName.length !== 0){
+    fs.access(path.join(__dirname, `../public/${image.fileName}`), constants.F_OK)
+    .then(() => {
+      fs.unlink(path.join(__dirname, `../public/${image.fileName}`));
+    }).catch(() => {});
+  }
+});
+
+export default mongoose.model<IProduct, ProductModel>('product', productSchema);

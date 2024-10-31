@@ -1,10 +1,10 @@
 import uploadFile from '../middlewares/file';
-import { postUploadFole } from '../controllers/upload';
+import { postUploadFile } from '../controllers/upload';
 import { Router } from 'express';
-
+import auth from '../middlewares/auth';
 
 const router = Router();
 
-router.post('/', uploadFile, postUploadFole);
+router.post('/', auth, uploadFile, postUploadFile);
 
 export default router;

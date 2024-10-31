@@ -1,53 +1,61 @@
 import 'dotenv/config';
 import InternalServerError from '../errors/internal-server-error';
 import { Request, Response, NextFunction, CookieOptions } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 import ms from 'ms';
 import User from '../models/user';
 import UnauthorizedError from '../errors/unauthorized-error';
 import ConflictError from '../errors/conflict-error';
+import BadRequestError from '../errors/bad-request-error';
+import NotFoundError from '../errors/not-found-error';
+import { AUTH_REFRESH_TOKEN_EXPIRY, AUTH_REFRESH_TOKEN_SECRET } from '../config';
 const bcrypt = require('bcryptjs');
+const crypto = require("crypto-js");
 
-const { AUTH_REFRESH_TOKEN_EXPIRY, AUTH_SECRET } = process.env;
+const REFRESH_TOKEN = {
+  secret: AUTH_REFRESH_TOKEN_SECRET,
+  cookie: {
+      name: "refreshToken",
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: false,
+        maxAge: ms(AUTH_REFRESH_TOKEN_EXPIRY),
+        path: '/',
+      } as CookieOptions,
+  },
+};
 
-// TODO: Проверить правильность работы токенов, в базе они не просто так
+interface SessionRequest extends Request {
+  user?: string | JwtPayload | any;
+}
 
 export const postLoginUser = async (req: Request, res: Response, next: NextFunction) => {
   const { email, password } = req.body;
 
   try{
-    const user = await User.findOne({email: email}).select('+password');
+    const user = await User.findUserByCredentials(email, password);
 
     if(!user){
       return next(new UnauthorizedError('Неправильная почта или пароль'));
     }
 
-    const checkPassword = await bcrypt.compare(password, user.password);
+    const accessToken = await User.generateAcessToken(user);
+    const refreshToken = await User.generateRefreshToken(user);
 
-    if(!checkPassword){
-      return next(new UnauthorizedError('Неправильная почта или пароль'));
-    }
-
-    const accessToken = jwt.sign({ _id: user._id }, AUTH_SECRET || 'secret_key', { expiresIn: '10m' });
-    const refreshToken = jwt.sign({ _id: user._id }, AUTH_SECRET || 'secret_key', { expiresIn: '7d'});
-
-    const resultCreateToken = await User.updateOne({_id: user._id}, {$set: {tokens: [{token: refreshToken}]}});
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: false,
-      maxAge: ms(AUTH_REFRESH_TOKEN_EXPIRY || '7d'),
-      path: '/',
-    } as CookieOptions);
+    res.cookie(
+      REFRESH_TOKEN.cookie.name,
+      refreshToken,
+      REFRESH_TOKEN.cookie.options
+    );
 
     res.status(200).send({
-      "user": {
-        "email": user.email,
-        "name": user.name
+      user: {
+        email: user.email,
+        name: user.name
       },
-      "success": true,
-      "accessToken": accessToken,
+      success: true,
+      accessToken,
     });
   }catch(error){
     return next(new InternalServerError('Внутренняя ошибка сервера'));
@@ -57,33 +65,31 @@ export const postLoginUser = async (req: Request, res: Response, next: NextFunct
 export const postRegisterUser = async (req: Request, res: Response, next: NextFunction) => {
   try{
     const { name, email, password } = req.body;
+
     const encryptedPassword = await bcrypt.hash(password, 10);
+
     const user = await User.create({
       name,
       email,
       password: encryptedPassword
     });
 
-    const accessToken = jwt.sign({ _id: user._id }, AUTH_SECRET || 'secret_key', { expiresIn: '10m' });
-    const refreshToken = jwt.sign({ _id: user._id }, AUTH_SECRET || 'secret_key', { expiresIn: '7d'});
+    const accessToken = await User.generateAcessToken(user);
+    const refreshToken = await User.generateRefreshToken(user);
 
-    const resultCreateToken = await User.updateOne({_id: user._id}, {$set: {tokens: [{token: refreshToken}]}});
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: false,
-      maxAge: ms(AUTH_REFRESH_TOKEN_EXPIRY || '7d'),
-      path: '/',
-    } as CookieOptions);
+    res.cookie(
+      REFRESH_TOKEN.cookie.name,
+      refreshToken,
+      REFRESH_TOKEN.cookie.options
+    );
 
     res.status(200).send({
-      "user": {
-        "email": user.email,
-        "name": user.name
+      user: {
+        email: user.email,
+        name: user.name
       },
-      "success": true,
-      "accessToken": accessToken,
+      success: true,
+      accessToken,
     });
   }catch(error){
     if (error instanceof Error && error.message.includes('E11000')) {
@@ -93,93 +99,99 @@ export const postRegisterUser = async (req: Request, res: Response, next: NextFu
   }
 }
 
-export const getToken = async (req: Request, res: Response, next: NextFunction) => {
-  const { authorization } = req.cookies;
-
+export const refreshAccessToken = async (req: Request, res: Response, next: NextFunction) => {
   try{
-    if (!authorization || !authorization.startsWith('Bearer ')) {
+    const { refreshToken } = req.cookies;
+
+    if (!refreshToken){
       return next(new UnauthorizedError('Ошибка авторизации'));
     }
 
-    const accessToken = authorization.replace('Bearer ', '');
+    const rTknHash = crypto.HmacSHA256(refreshToken, REFRESH_TOKEN.secret);
+
     let payload;
+
     try {
-      payload = await jwt.verify(accessToken, AUTH_SECRET || 'secret_key');
+      payload = await jwt.verify(
+        refreshToken,
+        REFRESH_TOKEN.secret
+      );
     } catch (err) {
       return next(new UnauthorizedError('Ошибка авторизации'));
     }
 
-    const user = await User.findOne({_id: payload});
-    const newAccessToken = jwt.sign({ _id: user?._id }, AUTH_SECRET || 'secret_key', { expiresIn: '10m' });
-    const newRefreshToken = jwt.sign({ _id: user?._id }, AUTH_SECRET || 'secret_key', { expiresIn: '7d'});
-
-    res.cookie("refreshToken", newRefreshToken, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: false,
-      maxAge: ms(AUTH_REFRESH_TOKEN_EXPIRY || '7d'),
-      path: '/',
-    } as CookieOptions);
-
-    res.status(200).send({
-      "user": {
-        "email": user?.email,
-        "name": user?.name
-      },
-      "success": true,
-      "accessToken": newAccessToken,
+    const user = await User.findOne({
+      _id: payload,
+      'tokens.token': rTknHash,
     });
+
+    if(!user){
+      return next(new UnauthorizedError('Ошибка авторизации'));
+    }
+
+    const newAccessToken = await User.generateAcessToken(user);
+
+    res.status(200)
+      .set({ "Cache-Control": "no-store", Pragma: "no-cache" })
+      .send({
+        user: {
+          email: user.email,
+          name: user.name
+        },
+        success: true,
+        accessToken: newAccessToken,
+      });
   }catch(error){
     return next(new InternalServerError('Внутренняя ошибка сервера'));
   }
 }
 
 export const getLogout = async (req: Request, res: Response, next: NextFunction) => {
-  const { refreshToken } = req.cookies;
-
   try{
-    const resultDeleteToken = await User.updateOne({tokens: {$elemMatch: {token: refreshToken}}}, {tokens: []});
-    res.cookie("refreshToken", refreshToken, {
-          httpOnly: true,
-          sameSite: 'lax',
-          secure: false,
-          maxAge: ms('-1d'),
-          path: '/',
-        } as CookieOptions);
+    const { refreshToken } = req.cookies;
+
+    const rTknHash = crypto.HmacSHA256(refreshToken, REFRESH_TOKEN.secret);
+
+    const resultDeleteToken = await User.updateOne({tokens: {$elemMatch: {token: rTknHash.toString()}}}, {tokens: []});
+    if(resultDeleteToken.modifiedCount === 0){
+      return next(new BadRequestError('Ошибка запроса'));
+    }
+
+    const expireCookieOptions = Object.assign(
+      {},
+      REFRESH_TOKEN.cookie.options,
+      {
+        maxAge: new Date(1),
+      }
+    );
+
+    res.cookie(REFRESH_TOKEN.cookie.name, refreshToken, expireCookieOptions);
+
     res.status(200).send({
-      "success": true,
+      success: true,
     });
   }catch(error){
-    return next(new InternalServerError('Внутренняя ошибка сервера'));
+    return next(new InternalServerError(`Внутренняя ошибка сервера: ${error}`));
   }
 }
 
-export const getCurrentUser = async (req: Request, res: Response, next: NextFunction) => {
-  const { authorization } = req.headers;
-
+export const getCurrentUser = async (req: SessionRequest, res: Response, next: NextFunction) => {
   try{
-    if (!authorization || !authorization.startsWith('Bearer ')) {
-      return next(new UnauthorizedError('Ошибка авторизации'));
-    }
 
-    const accessToken = authorization.replace('Bearer ', '');
-    let payload;
-    try {
-      payload = await jwt.verify(accessToken, AUTH_SECRET || 'secret_key');
-    } catch (err) {
-      return next(new UnauthorizedError('Ошибка авторизации'));
-    }
+    const user = await User.findOne({_id: req.user._id});
 
-    const user = await User.findOne({_id: payload});
+    if(!user){
+      return next(new NotFoundError('Объект не найден'));
+    }
 
     res.status(200).send({
-      "user": {
-          "email": user?.email,
-          "name": user?.name
+      user: {
+        email: user.email,
+        name: user.name
       },
-      "success": true,
+      success: true,
     });
   }catch(error){
-    return next(new InternalServerError('Внутренняя ошибка сервера'));
+      return next(new InternalServerError('Внутренняя ошибка сервера'));
   }
 }
