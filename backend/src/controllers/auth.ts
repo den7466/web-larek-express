@@ -192,7 +192,7 @@ export const getCurrentUser = async (req: SessionRequest, res: Response, next: N
     const user = await User.findOne({ _id: req.user._id });
 
     if (!user) {
-      return next(new NotFoundError('Объект не найден'));
+      return next(new NotFoundError('Пользователь не найден'));
     }
 
     return res.status(200).send({

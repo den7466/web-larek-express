@@ -39,4 +39,5 @@ app.listen(PORT, () => {
   console.log(`Сервер запущен на ${PORT} порту`);
 });
 
+// Временные файлы очищаются каждый день в 23:59
 cron.schedule('59 23 * * *', clearTempFiles);

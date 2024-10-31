@@ -7,7 +7,8 @@ const fileFilter = (_req: any, file: any, cb: any) => {
     file.mimetype === 'image/png'
     || file.mimetype === 'image/jpg'
     || file.mimetype === 'image/jpeg'
-    || file.mimetype === 'image/gif') {
+    || file.mimetype === 'image/gif'
+    || file.mimetype === 'image/svg+xml') {
     cb(null, true);
   } else {
     cb(null, false);

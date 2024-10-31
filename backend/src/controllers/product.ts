@@ -9,9 +9,6 @@ import BadRequestError from '../errors/bad-request-error';
 export const getProducts = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await Product.find({});
-    if (result.length === 0) {
-      return next(new NotFoundError('Данные не найдены'));
-    }
     return res.status(200).send({ items: result, total: result.length });
   } catch (error) {
     return next(new InternalServerError('Внутренняя ошибка сервера'));
