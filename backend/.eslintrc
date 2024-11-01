@@ -26,7 +26,8 @@
       "ignorePackages",
       {
         "js": "never",
-        "ts": "never"
+        "ts": "never",
+        "joi": "never"
       }
     ],
     "no-underscore-dangle": [
